@@ -2,12 +2,21 @@
 // Licensed under the MIT License.
 
 #include "CalculatorController.h"
+#include "CurrencyDataLoader.h"
 #include "DateCalculator.h"
 #include "ReswStrings.h"
+#include "UnitConverterController.h"
+#include "UnitConverterDataLoader.h"
 
+#include <QFile>
 #include <QGuiApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLocale>
+#include <QTemporaryDir>
 #include <QTest>
+
+#include <clocale>
 
 using C = CalculatorController;
 
@@ -36,6 +45,8 @@ private Q_SLOTS:
     void initTestCase()
     {
         QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
+        // Matches main(): the engines parse numbers with the C library.
+        std::setlocale(LC_NUMERIC, "C");
     }
 
     void resourcesLoad()
@@ -265,6 +276,186 @@ private Q_SLOTS:
 
         r = calc.adjust(9999, 12, 1, false, 1, 0, 0);
         QVERIFY(!r[QStringLiteral("valid")].toBool());
+    }
+
+    // -----------------------------------------------------------------------
+    // Unit converter
+    // -----------------------------------------------------------------------
+
+    static int categoryIndex(const UnitConverterController& converter, ConverterCategory category)
+    {
+        return converter.categories().indexOf(UnitConverterDataLoader::categoryName(category));
+    }
+
+    static void typeConverter(UnitConverterController& converter, const QString& keys)
+    {
+        for (QChar c : keys)
+        {
+            converter.handleKey(0, Qt::NoModifier, QString(c));
+        }
+    }
+
+    void converterCategories()
+    {
+        UnitConverterController converter(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        QCOMPARE(converter.categories().size(), 13);
+        QCOMPARE(converter.categories().first(), QStringLiteral("Currency"));
+        QVERIFY(converter.categories().contains(QStringLiteral("Temperature")));
+    }
+
+    void converterLength()
+    {
+        UnitConverterController converter(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        converter.setCategoryIndex(categoryIndex(converter, ConverterCategory::Length));
+        // US defaults: centimeters to inches.
+        QCOMPARE(converter.units()[converter.unit1Index()], QStringLiteral("Centimeters"));
+        QCOMPARE(converter.units()[converter.unit2Index()], QStringLiteral("Inches"));
+
+        typeConverter(converter, QStringLiteral("254"));
+        QCOMPARE(converter.value1(), QStringLiteral("254"));
+        QCOMPARE(converter.value2(), QStringLiteral("100"));
+        QVERIFY(!converter.supplementaryResults().isEmpty());
+
+        // Grouping and decimals.
+        typeConverter(converter, QStringLiteral("0000.5"));
+        QCOMPARE(converter.value1(), QStringLiteral("2,540,000.5"));
+
+        // Make the second field the input and convert back.
+        converter.activate(2);
+        QVERIFY(!converter.value1Active());
+        converter.sendCommand(UnitConverterController::Clear);
+        typeConverter(converter, QStringLiteral("1"));
+        QCOMPARE(converter.value2(), QStringLiteral("1"));
+        QCOMPARE(converter.value1(), QStringLiteral("2.54"));
+    }
+
+    void converterTemperatureRegions()
+    {
+        UnitConverterController us(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        us.setCategoryIndex(categoryIndex(us, ConverterCategory::Temperature));
+        QCOMPARE(us.units()[us.unit1Index()], QStringLiteral("Celsius"));
+        QCOMPARE(us.units()[us.unit2Index()], QStringLiteral("Fahrenheit"));
+        typeConverter(us, QStringLiteral("100"));
+        QCOMPARE(us.value2(), QStringLiteral("212"));
+
+        // Negative input: -40 is the same in both scales.
+        us.sendCommand(UnitConverterController::Clear);
+        typeConverter(us, QStringLiteral("40-"));
+        QCOMPARE(us.value1(), QStringLiteral("-40"));
+        QCOMPARE(us.value2(), QStringLiteral("-40"));
+
+        UnitConverterController gb(QStringLiteral("GB"), QStringLiteral("/nonexistent/rates.json"), false);
+        gb.setCategoryIndex(categoryIndex(gb, ConverterCategory::Temperature));
+        QCOMPARE(gb.units()[gb.unit1Index()], QStringLiteral("Fahrenheit"));
+        QCOMPARE(gb.units()[gb.unit2Index()], QStringLiteral("Celsius"));
+    }
+
+    void converterNegativeOnlyWhereSupported()
+    {
+        UnitConverterController converter(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        converter.setCategoryIndex(categoryIndex(converter, ConverterCategory::Length));
+        QVERIFY(!converter.supportsNegative());
+        typeConverter(converter, QStringLiteral("5-"));
+        QCOMPARE(converter.value1(), QStringLiteral("5"));
+    }
+
+    void converterRegionalUnits()
+    {
+        UnitConverterController jp(QStringLiteral("JP"), QStringLiteral("/nonexistent/rates.json"), false);
+        jp.setCategoryIndex(categoryIndex(jp, ConverterCategory::Area));
+        QVERIFY(jp.units().contains(QStringLiteral("Pyeong")));
+
+        UnitConverterController us(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        us.setCategoryIndex(categoryIndex(us, ConverterCategory::Area));
+        QVERIFY(!us.units().contains(QStringLiteral("Pyeong")));
+    }
+
+    void converterDataUnits()
+    {
+        UnitConverterController converter(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        converter.setCategoryIndex(categoryIndex(converter, ConverterCategory::Data));
+        converter.setUnit1Index(converter.units().indexOf(QStringLiteral("Kibibytes")));
+        converter.setUnit2Index(converter.units().indexOf(QStringLiteral("Bytes")));
+        typeConverter(converter, QStringLiteral("2"));
+        QCOMPARE(converter.value2(), QStringLiteral("2,048"));
+    }
+
+    void converterPaste()
+    {
+        UnitConverterController converter(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        converter.setCategoryIndex(categoryIndex(converter, ConverterCategory::Length));
+        QVERIFY(converter.pasteText(QStringLiteral("1,234.5")));
+        QCOMPARE(converter.value1(), QStringLiteral("1,234.5"));
+        QVERIFY(!converter.pasteText(QStringLiteral("abc")));
+    }
+
+    void localizeNumber()
+    {
+        QCOMPARE(UnitConverterController::localizeNumber(QStringLiteral("1234567.25")), QStringLiteral("1,234,567.25"));
+        QCOMPARE(UnitConverterController::localizeNumber(QStringLiteral("-1000")), QStringLiteral("-1,000"));
+        QCOMPARE(UnitConverterController::localizeNumber(QStringLiteral("12.")), QStringLiteral("12."));
+        QCOMPARE(UnitConverterController::localizeNumber(QStringLiteral("1.5e+20")), QStringLiteral("1.5e+20"));
+        QCOMPARE(UnitConverterController::localizeNumber(QStringLiteral("999")), QStringLiteral("999"));
+    }
+
+    void currencyWithoutRates()
+    {
+        UnitConverterController converter(QStringLiteral("US"), QStringLiteral("/nonexistent/rates.json"), false);
+        converter.setCategoryIndex(categoryIndex(converter, ConverterCategory::Currency));
+        QVERIFY(converter.isCurrency());
+        QVERIFY(converter.units().isEmpty());
+        QVERIFY(converter.currencyUnavailable());
+    }
+
+    void currencyFromCache()
+    {
+        QTemporaryDir dir;
+        const QString cache = dir.filePath(QStringLiteral("rates.json"));
+        {
+            QJsonObject currencies{ { QStringLiteral("USD"), QStringLiteral("US Dollar") },
+                                    { QStringLiteral("EUR"), QStringLiteral("Euro") },
+                                    { QStringLiteral("JPY"), QStringLiteral("Japanese Yen") } };
+            QJsonObject latest{ { QStringLiteral("base"), QStringLiteral("USD") },
+                                { QStringLiteral("rates"), QJsonObject{ { QStringLiteral("EUR"), 0.89381 }, { QStringLiteral("JPY"), 158.12 } } } };
+            QJsonObject root{ { QStringLiteral("timestamp"), QDateTime::currentDateTimeUtc().toString(Qt::ISODate) },
+                              { QStringLiteral("currencies"), currencies },
+                              { QStringLiteral("latest"), latest } };
+            QFile file(cache);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QJsonDocument(root).toJson());
+        }
+
+        UnitConverterController converter(QStringLiteral("US"), cache, false);
+        converter.setCategoryIndex(categoryIndex(converter, ConverterCategory::Currency));
+        QCOMPARE(converter.units().size(), 3);
+        // en-US defaults: US dollars to euros.
+        QCOMPARE(converter.unitAbbreviations()[converter.unit1Index()], QStringLiteral("USD"));
+        QCOMPARE(converter.unitAbbreviations()[converter.unit2Index()], QStringLiteral("EUR"));
+        QCOMPARE(converter.currencySymbol1(), QStringLiteral("$"));
+        QCOMPARE(converter.currencySymbol2(), QStringLiteral("€"));
+        QCOMPARE(converter.currencyRatio(), QStringLiteral("1 USD = 0.8938 EUR"));
+        QVERIFY(converter.currencyTimestamp().startsWith(QStringLiteral("Updated ")));
+        QVERIFY(!converter.currencyRatesOld());
+
+        typeConverter(converter, QStringLiteral("100"));
+        QCOMPARE(converter.value2(), QStringLiteral("89.38"));
+
+        // At most two decimals can be typed for dollars.
+        typeConverter(converter, QStringLiteral(".999"));
+        QCOMPARE(converter.value1(), QStringLiteral("100.99"));
+
+        // Yen has no minor unit: no decimals in input or output.
+        converter.setUnit2Index(converter.unitAbbreviations().indexOf(QStringLiteral("JPY")));
+        QCOMPARE(converter.value2(), QStringLiteral("15,969")); // 100.99 × 158.12
+        converter.activate(2);
+        QVERIFY(!converter.decimalEnabled());
+    }
+
+    void currencyRatioRounding()
+    {
+        QCOMPARE(CurrencyDataLoader::roundCurrencyRatio(0.89381), 0.8938);
+        QCOMPARE(CurrencyDataLoader::roundCurrencyRatio(0.000212), 0.000212);
+        QCOMPARE(CurrencyDataLoader::roundCurrencyRatio(158.123456), 158.1235);
     }
 };
 

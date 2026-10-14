@@ -7,13 +7,15 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import Calculator
 
-// A keypad button. Clicking sends 'command' to the engine unless it is negative.
+// A keypad button. Clicking sends 'command' to the calculator engine unless it is
+// negative or 'sendsToCalculator' is false (the converter handles its own clicks).
 QQC2.Button {
     id: button
 
     enum Kind { Operator, Digit, Equals }
 
     property int command: -1
+    property bool sendsToCalculator: true
     property int kind: CalcButton.Kind.Operator
     property string tip: ""
 
@@ -37,7 +39,7 @@ QQC2.Button {
     Accessible.name: tip.length > 0 ? tip : text
 
     onClicked: {
-        if (command >= 0) {
+        if (sendsToCalculator && command >= 0) {
             CalculatorEngine.sendCommand(command)
         }
     }

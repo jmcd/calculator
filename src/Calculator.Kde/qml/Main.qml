@@ -12,6 +12,7 @@ Kirigami.ApplicationWindow {
 
     // Category shown in the window: one of the CalculatorEngine.Mode values, or DateMode.
     readonly property int dateMode: 100
+    readonly property int converterMode: 200
     property int category: CalculatorEngine.Standard
 
     title: categoryName(category)
@@ -25,16 +26,17 @@ Kirigami.ApplicationWindow {
         case CalculatorEngine.Scientific: return Strings.get("ScientificModeText", "Scientific")
         case CalculatorEngine.Programmer: return Strings.get("ProgrammerModeText", "Programmer")
         case dateMode: return Strings.get("DateCalculationModeText", "Date calculation")
+        case converterMode: return Converter.categories[Converter.categoryIndex] ?? Strings.get("ConverterModeText", "Converter")
         default: return Strings.get("StandardModeText", "Standard")
         }
     }
 
     function showCategory(c) {
         category = c
-        if (c !== dateMode) {
+        if (c !== dateMode && c !== converterMode) {
             CalculatorEngine.mode = c
         }
-        const page = c === dateMode ? dateCalculatorPage : calculatorPage
+        const page = c === dateMode ? dateCalculatorPage : c === converterMode ? converterPage : calculatorPage
         if (pageStack.depth === 0) {
             pageStack.push(page)
         } else {
@@ -65,6 +67,21 @@ Kirigami.ApplicationWindow {
     Shortcut { sequence: "Alt+2"; onActivated: root.showCategory(CalculatorEngine.Scientific) }
     Shortcut { sequence: "Alt+3"; onActivated: root.showCategory(CalculatorEngine.Programmer) }
     Shortcut { sequence: "Alt+4"; onActivated: root.showCategory(root.dateMode) }
+    Shortcut { sequence: "Alt+5"; onActivated: root.showCategory(root.converterMode) }
+
+    function showConverter(index) {
+        Converter.categoryIndex = index
+        showCategory(converterMode)
+    }
+
+    // One drawer entry per converter category.
+    component ConverterAction: Kirigami.Action {
+        required property int index
+        text: Converter.categories[index]
+        checkable: true
+        checked: root.category === root.converterMode && Converter.categoryIndex === index
+        onTriggered: root.showConverter(index)
+    }
 
     globalDrawer: Kirigami.GlobalDrawer {
         modal: true
@@ -102,6 +119,25 @@ Kirigami.ApplicationWindow {
                 onTriggered: root.showCategory(root.dateMode)
             },
             Kirigami.Action {
+                text: Strings.get("ConverterModeText", "Converter")
+                icon.name: "measure"
+                checked: root.category === root.converterMode
+
+                ConverterAction { index: 0; icon.name: "taxes-finances" }
+                ConverterAction { index: 1; icon.name: "kt-set-max-upload-speed" }
+                ConverterAction { index: 2; icon.name: "measure" }
+                ConverterAction { index: 3; icon.name: "weight" }
+                ConverterAction { index: 4; icon.name: "temperature-normal" }
+                ConverterAction { index: 5; icon.name: "battery-full" }
+                ConverterAction { index: 6; icon.name: "draw-rectangle" }
+                ConverterAction { index: 7; icon.name: "speedometer" }
+                ConverterAction { index: 8; icon.name: "chronometer" }
+                ConverterAction { index: 9; icon.name: "battery-charging" }
+                ConverterAction { index: 10; icon.name: "drive-harddisk" }
+                ConverterAction { index: 11; icon.name: "weather-clouds" }
+                ConverterAction { index: 12; icon.name: "draw-arc" }
+            },
+            Kirigami.Action {
                 separator: true
             },
             Kirigami.Action {
@@ -115,6 +151,11 @@ Kirigami.ApplicationWindow {
     Component {
         id: calculatorPage
         CalculatorPage {}
+    }
+
+    Component {
+        id: converterPage
+        ConverterPage {}
     }
 
     Component {

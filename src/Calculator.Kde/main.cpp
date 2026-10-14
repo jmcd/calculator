@@ -10,9 +10,16 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 
+#include <clocale>
+
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+
+    // QApplication applies the user's C locale. The engines format and parse
+    // numbers with the C library ("1.5"), so keep numeric conversions in "C";
+    // the UI formats numbers itself with QLocale.
+    std::setlocale(LC_NUMERIC, "C");
 
     QApplication::setOrganizationName(QStringLiteral("calculator-kde"));
     QApplication::setApplicationName(QStringLiteral("calculator-kde"));

@@ -1,6 +1,6 @@
 # Qt 6 / Kirigami frontend for KDE Plasma.
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickControls2)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Network Widgets Qml Quick QuickControls2)
 include(GNUInstallDirs)
 
 qt_standard_project_setup(REQUIRES 6.5)
@@ -12,12 +12,18 @@ set(CALCULATOR_RESOURCES_SRC "${PROJECT_SOURCE_DIR}/src/Calculator/Resources")
 set(CALCULATOR_KDE_CORE_SOURCES
     CalculatorController.cpp
     CalculatorController.h
+    CurrencyDataLoader.cpp
+    CurrencyDataLoader.h
     DateCalculator.cpp
     DateCalculator.h
     EngineResourceProvider.cpp
     EngineResourceProvider.h
     ReswStrings.cpp
     ReswStrings.h
+    UnitConverterController.cpp
+    UnitConverterController.h
+    UnitConverterDataLoader.cpp
+    UnitConverterDataLoader.h
 )
 list(TRANSFORM CALCULATOR_KDE_CORE_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
@@ -29,6 +35,13 @@ qt_add_resources(calculator-kde "engine_strings"
     PREFIX "/resources"
     BASE "${CALCULATOR_RESOURCES_SRC}"
     FILES "${CALCULATOR_RESOURCES_SRC}/en-US/CEngineStrings.resw"
+)
+
+# Default "from"/"to" currencies per locale, shared with the Windows app.
+qt_add_resources(calculator-kde "converter_data"
+    PREFIX "/converter"
+    BASE "${PROJECT_SOURCE_DIR}/src/Calculator.ViewModels/DataLoaders"
+    FILES "${PROJECT_SOURCE_DIR}/src/Calculator.ViewModels/DataLoaders/DefaultFromToCurrency.json"
 )
 
 
@@ -48,12 +61,14 @@ qt_add_qml_module(calculator-kde
         qml/BitFlipPanel.qml
         qml/HistoryMemoryPanel.qml
         qml/DateCalculatorPage.qml
+        qml/ConverterPage.qml
         qml/AboutDialog.qml
 )
 
 target_link_libraries(calculator-kde PRIVATE
     CalcManager
     Qt6::Gui
+    Qt6::Network
     Qt6::Qml
     Qt6::Widgets
     Qt6::Quick

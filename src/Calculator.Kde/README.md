@@ -4,8 +4,17 @@ A Qt 6 + Kirigami frontend for the Windows Calculator's calculation engine
 (`src/CalcManager`), so the app runs natively on KDE Plasma and other Linux desktops.
 
 Supported: Standard, Scientific and Programmer modes (including the bit-toggling
-keypad), history, memory, copy/paste, keyboard shortcuts and date calculation.
-Not yet ported: unit/currency converters and graphing.
+keypad), history, memory, copy/paste, keyboard shortcuts, date calculation and the
+unit converter (all 13 categories, including currency). Not yet ported: graphing.
+
+### Currency rates
+
+The Windows app's exchange-rate service isn't public (the open-source Windows build
+ships made-up currencies). This port uses [Frankfurter](https://frankfurter.dev),
+which publishes the European Central Bank's daily reference rates for about 30
+currencies, with no API key. Rates are fetched when the Currency converter is opened
+and they are more than a day old, or on **Update rates**, and cached in
+`~/.cache/calculator-kde/currency-rates.json` so conversion works offline.
 
 ## Build
 
@@ -38,6 +47,9 @@ sudo cmake --install build-linux --prefix /usr/local
 | `CalcManager` (C++)                 | same sources, built with CMake       |
 | `StandardCalculatorViewModel` (C#)  | `CalculatorController` (C++/QObject) |
 | `DateCalculationEngine` (C#)        | `DateCalculator` (C++, `QDate`)      |
+| `UnitConverterViewModel` (C#)       | `UnitConverterController` (C++)      |
+| `UnitConverterDataLoader` (C#)      | `UnitConverterDataLoader` (C++)      |
+| `CurrencyDataLoader` (C#)           | `CurrencyDataLoader` (C++, Frankfurter) |
 | `EngineResourceProvider` (C#)       | `EngineResourceProvider` (C++)       |
 | XAML views                          | QML in `qml/`                        |
 

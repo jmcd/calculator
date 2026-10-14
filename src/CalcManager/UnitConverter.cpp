@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #include <cassert>
+#include <cstdint>
 #include <cmath>
 #include <sstream>
 #include <algorithm> // for std::sort

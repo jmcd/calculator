@@ -1,11 +1,11 @@
 # Portable build of the calculation engine (used by the Linux / KDE frontend).
-# UnitConverter.cpp is excluded because it depends on the PPL (concurrency::task).
 
 add_library(CalcManager STATIC
     CalculatorHistory.cpp
     CalculatorManager.cpp
     ExpressionCommand.cpp
     NumberFormattingUtils.cpp
+    UnitConverter.cpp
     CEngine/calc.cpp
     CEngine/CalcInput.cpp
     CEngine/CalcUtils.cpp
