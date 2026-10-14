@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator
+GenericName=Calculator
+Comment=Standard, scientific and programmer calculator with date calculation
+Exec=calculator-kde
+Icon=accessories-calculator
+Terminal=false
+Categories=Qt;KDE;Utility;Calculator;
+Keywords=calculator;math;scientific;programmer;hex;binary;date;
+StartupNotify=true
+StartupWMClass=calculator-kde

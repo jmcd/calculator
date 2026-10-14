@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) Microsoft Corporation. Licensed under the MIT License. -->
+<component type="desktop-application">
+  <id>io.github.jmcd.calculator</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Calculator</name>
+  <summary>Standard, scientific and programmer calculator</summary>
+  <description>
+    <p>
+      A KDE port of the open-source Windows Calculator, using the same
+      arbitrary-precision calculation engine.
+    </p>
+    <ul>
+      <li>Standard, scientific and programmer modes</li>
+      <li>History and memory</li>
+      <li>Hex, decimal, octal and binary input with a bit-toggling keypad</li>
+      <li>Date calculation</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.jmcd.calculator.desktop</launchable>
+  <provides>
+    <binary>calculator-kde</binary>
+  </provides>
+  <categories>
+    <category>Utility</category>
+    <category>Calculator</category>
+  </categories>
+</component>
