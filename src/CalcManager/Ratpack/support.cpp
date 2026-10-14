@@ -18,6 +18,7 @@
 //
 //----------------------------------------------------------------------------
 
+#include <cmath>
 #include <string>
 #include <cstring>  // for memmove
 #include <iostream> // for wostream
