@@ -16,6 +16,12 @@ set(CALCULATOR_KDE_CORE_SOURCES
     CurrencyDataLoader.h
     DateCalculator.cpp
     DateCalculator.h
+    GraphExpression.cpp
+    GraphExpression.h
+    GraphingController.cpp
+    GraphingController.h
+    GraphView.cpp
+    GraphView.h
     EngineResourceProvider.cpp
     EngineResourceProvider.h
     ReswStrings.cpp
@@ -62,6 +68,7 @@ qt_add_qml_module(calculator-kde
         qml/HistoryMemoryPanel.qml
         qml/DateCalculatorPage.qml
         qml/ConverterPage.qml
+        qml/GraphingPage.qml
         qml/AboutDialog.qml
 )
 

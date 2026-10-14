@@ -13,6 +13,7 @@ Kirigami.ApplicationWindow {
     // Category shown in the window: one of the CalculatorEngine.Mode values, or DateMode.
     readonly property int dateMode: 100
     readonly property int converterMode: 200
+    readonly property int graphingMode: 300
     property int category: CalculatorEngine.Standard
 
     title: categoryName(category)
@@ -26,6 +27,7 @@ Kirigami.ApplicationWindow {
         case CalculatorEngine.Scientific: return Strings.get("ScientificModeText", "Scientific")
         case CalculatorEngine.Programmer: return Strings.get("ProgrammerModeText", "Programmer")
         case dateMode: return Strings.get("DateCalculationModeText", "Date calculation")
+        case graphingMode: return Strings.get("GraphingCalculatorModeText", "Graphing")
         case converterMode: return Converter.categories[Converter.categoryIndex] ?? Strings.get("ConverterModeText", "Converter")
         default: return Strings.get("StandardModeText", "Standard")
         }
@@ -33,10 +35,13 @@ Kirigami.ApplicationWindow {
 
     function showCategory(c) {
         category = c
-        if (c !== dateMode && c !== converterMode) {
+        if (c !== dateMode && c !== converterMode && c !== graphingMode) {
             CalculatorEngine.mode = c
         }
-        const page = c === dateMode ? dateCalculatorPage : c === converterMode ? converterPage : calculatorPage
+        const page = c === dateMode ? dateCalculatorPage
+                   : c === converterMode ? converterPage
+                   : c === graphingMode ? graphingPage
+                   : calculatorPage
         if (pageStack.depth === 0) {
             pageStack.push(page)
         } else {
@@ -62,12 +67,12 @@ Kirigami.ApplicationWindow {
         function onAngleModeChanged() { settings.angleMode = CalculatorEngine.angleMode }
     }
 
-    // Alt+1..Alt+5 switch modes, like the Windows app.
+    // Alt+1..Alt+5 switch modes, in the same order as the Windows app.
     Shortcut { sequence: "Alt+1"; onActivated: root.showCategory(CalculatorEngine.Standard) }
     Shortcut { sequence: "Alt+2"; onActivated: root.showCategory(CalculatorEngine.Scientific) }
-    Shortcut { sequence: "Alt+3"; onActivated: root.showCategory(CalculatorEngine.Programmer) }
-    Shortcut { sequence: "Alt+4"; onActivated: root.showCategory(root.dateMode) }
-    Shortcut { sequence: "Alt+5"; onActivated: root.showCategory(root.converterMode) }
+    Shortcut { sequence: "Alt+3"; onActivated: root.showCategory(root.graphingMode) }
+    Shortcut { sequence: "Alt+4"; onActivated: root.showCategory(CalculatorEngine.Programmer) }
+    Shortcut { sequence: "Alt+5"; onActivated: root.showCategory(root.dateMode) }
 
     function showConverter(index) {
         Converter.categoryIndex = index
@@ -103,6 +108,13 @@ Kirigami.ApplicationWindow {
                 checkable: true
                 checked: root.category === CalculatorEngine.Scientific
                 onTriggered: root.showCategory(CalculatorEngine.Scientific)
+            },
+            Kirigami.Action {
+                text: Strings.get("GraphingCalculatorModeText", "Graphing")
+                icon.name: "labplot-xy-curve"
+                checkable: true
+                checked: root.category === root.graphingMode
+                onTriggered: root.showCategory(root.graphingMode)
             },
             Kirigami.Action {
                 text: Strings.get("ProgrammerModeText", "Programmer")
@@ -151,6 +163,11 @@ Kirigami.ApplicationWindow {
     Component {
         id: calculatorPage
         CalculatorPage {}
+    }
+
+    Component {
+        id: graphingPage
+        GraphingPage {}
     }
 
     Component {
